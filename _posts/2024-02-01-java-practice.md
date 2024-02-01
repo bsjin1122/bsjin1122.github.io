@@ -4,7 +4,7 @@ excerpt: "github 블로그 업로드용(작성 진행중)"
 
 categories: [TIL, Java]
 tags:
-  - [Blog, jekyll, Github, Git]
+  - [Java]
 
 toc: true
 toc_sticky: true
@@ -105,3 +105,259 @@ char c = ch;        // char c = ch.charValue();           : 오토언박싱
 - 시차를 다루지 않으면 Local 로 시작되는 클래스를 사용한다.
 - 시차를 다루면 Offset으로 시작되는 클래스를 사용한다.
 - 시차뿐 아니라 그 지역의 일시가 고려된 편이 바람직하면 `ZonedDateTime`을 사용한다.
+
+## PostgreSQL
+
+> "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres
+
+- 암호 입력
+- SELECT version(); -> 1개 행 결과 출력
+- 환경 변수 설정 후에 명령어 간결해짐
+- ![Alt text](image.png)
+  - > psql -U postgres
+
+#### 접속
+
+- psql -U 사용자명 (-d 데이터베이스명)
+  (-d 데이터베이스명, -h 호스트명, -L 파일명, -f 파일명)
+
+- 접속 해제 : `\q`
+- CREATE DATABASE sample;
+- 데이터베이스 목록 보기: `\l`
+
+  > sample 데이터 베이스에 접속하려면
+  >
+  > - psql -U postgres sample
+  > - 이미 연결된 상태라면 : \c sample 입력해 사용할 데이터베이스를 선택
+
+- 데이터베이스 삭제: - DROP DATABASE sample;
+  ![Alt text](image-1.png)
+
+- 테이블 생성
+  > CREATE TABLE sample(column1 varchar(10) PRIMARY KEY, column2 integer CHECK(Column2 > 0));
+- 테이블 목록 표시 : `\d`
+- 테이블 정의 표시 : \d sample
+- 테이블 변경 구문 : `ALTER TABLE 테이블명 [ADD|DROP|ALTER|RENAME] 변경문;`
+
+```SQL
+postgres=# ALTER TABLE sample ADD COLUMN column3 varchar(10);
+ALTER TABLE
+postgres=# ALTER TABLE sample DROP COLUMN column3;
+ALTER TABLE
+postgres=# ALTER TABLE sample ALTER COLUMN column1 TYPE varchar(10);
+ALTER TABLE
+postgres=# DROP TABLE sample;
+DROP TABLE
+```
+
+- 인덱스 생성: `CREATE INDEX index1 ON sample (column1);`
+- 인덱스 확인: \di
+- 인덱스 정의 표시 : \d index1
+  ![Alt text](image-2.png)
+- 인덱스 삭제: DROP INDEX 인덱스명;
+- 롤 생성: `CREATE ROLE sample_user WITH LOGIN PASSWORD 'pass';`
+
+```sql
+postgres=# CREATE ROLE sample_user WITH LOGIN PASSWORD 'pass';
+CREATE ROLE
+postgres=# SELECT usename FROM pg_user;
+   usename
+-------------
+ postgres
+ sample_user
+(2개 행)
+```
+
+- 권한의 종류
+  > CONNECT(접속), SELECT(조회), INSERT(추가), DELETE(삭제), ALL PRIVILIEGES(모든 기능)
+
+```sql
+postgres=# CREATE TABLE sample(column1 varchar(10) PRIMARY KEY, column2 integer CHECK(Column2 > 0));
+CREATE TABLE
+postgres=# SELECT column1 from sample;
+ column1
+---------
+(0개 행)
+
+
+postgres=# INSERT INTO sample VALUES('안녕', 10);
+INSERT 0 1
+postgres=# SELECT * FROM sample;
+ column1 | column2
+---------+---------
+ 안녕    |      10
+(1개 행)
+```
+
+- 내부 결합: 공통된 컬럼값을 사용해 결합
+
+```sql
+CREATE TABLE price(
+	category_cd integer,
+	item_name varchar(30),
+	price integer
+);
+
+INSERT INTO price VALUES(01, '귤', 50);
+INSERT INTO price VALUES(01, '포도', 200);
+INSERT INTO price VALUES(02, '쿠키', 100);
+INSERT INTO price VALUES(02, '초콜릿', 300);
+INSERT INTO price VALUES(02, '사탕', 150);
+INSERT INTO price VALUES(03, '감기약', 2000);
+
+CREATE TABLE category(
+	category_id integer,
+	category_name varchar(30)
+);
+INSERT INTO category VALUES(01, '과일');
+INSERT INTO category VALUES(02, '과자');
+INSERT INTO category VALUES(03, '의약품');
+
+SELECT category.category_name, price.item_name, price.price
+FROM category INNER JOIN price
+ON category.category_cd = price.category_cd;
+
+postgres-# ON category.category_cd = price.category_cd;
+ category_name | item_name | price
+---------------+-----------+-------
+ 과일          | 포도      |   200
+ 과일          | 귤        |    50
+ 과자          | 사탕      |   150
+ 과자          | 초콜릿    |   300
+ 과자          | 쿠키      |   100
+ 의약품        | 감기약    |  2000
+(6개 행)
+```
+
+- WHERE절 조인
+  > SELECT category.category_name, price.item_name, price.price
+  > FROM category, price
+  > WHERE category.category_cd = price.category_cd;
+- LEFT OUTER JOIN : 왼쪽 테이블의 레코드가 모두 추출되는
+
+```SQL
+postgres=# INSERT INTO category VALUES(04, '잡화');
+INSERT 0 1
+postgres=# INSERT INTO price VALUES(05, '전자레인지', 10000);
+INSERT 0 1
+postgres=# SELECT category.category_name, price.item_name, price.price
+postgres-# FROM category LEFT OUTER JOIN price
+postgres-# ON category.category_cd = price.category_cd;
+ category_name | item_name | price
+---------------+-----------+-------
+ 과일          | 포도      |   200
+ 과일          | 귤        |    50
+ 과자          | 사탕      |   150
+ 과자          | 초콜릿    |   300
+ 과자          | 쿠키      |   100
+ 의약품        | 감기약    |  2000
+ 잡화          |           |
+(7개 행)
+```
+
+- RIGHT OUTER JOIN
+  ![](image-3.png)
+- 데이터베이스 애플리케이션의 기본: 접속-> 처리 -> 접속 해제
+
+---
+
+## 예제 프로그램을 처리 단계별로 설명
+
+- java.sql 패키지의 주요 클래스
+
+  - Connection: 데이터베이스에 접속하기 위한 클래스
+  - DriverManagaer: JDBC 드라이버를 다루는 기능이 구현된 클래스
+  - Statement: 정적 SQL을 실행해 결과를 가져오는 클래스
+  - PreparedStatement : 동적 SQL을 실행해 결과를 가져오는 클래스
+  - ResultSet : SQL 처리 결과를 저장하는 클래스
+
+- JDBC 드라이버 로딩
+  - Class.forName(JDBC 드라이버의*전체*주소\_이름);
+  - try catch 구문 필요
+- 데이터베이스에 접속
+  - conn = DriverManager.getConnection("jdbc:postgresql:postgres", "postgres", "**\*\***");
+  - "jdbc:postgresql:데이터베이스명", "사용자명", "암호"
+  - RDBMS와 데이터베이스 접속 조건에 따라 다르다.
+- SELECT 문 발행과 결과 획득
+
+```java
+// Statement 오브젝트 생성
+Statement stmt = conn.createStatement(); --- SQL을 저장할 객체
+
+// SELECT 문을 발행하고 검색 결과를 저장한다.
+ResultSet rset = stmt.executeQuery("SELECT * FROM book");
+```
+
+- executeQuery: select 명령을 실행, 데이터베이스에서 가져온 레코드를 반환
+  - 결과는 ResultSet 클래스의 객체로 받는다.
+
+```java
+// 3. 결과 표시
+while(rset.next()){
+    System.out.println(rset.getString("name"));
+}
+```
+
+- next메서드로 다음 레코드를 가져온다. 현재 레코드에서 지정한 컬럼의 값을 추출한다.
+- next 메서드는 while 루프의 종료 조건으로 지정하면, 모든 레코드를 가져온 후 처리를 종료한다.
+- 데이터베이스 접속 해제
+
+```java
+} catch (SQLException e) {
+            // 접속, SELECT 문 발행에서 오류가 발생한 경우
+            e.printStackTrace();
+            //throw new RuntimeException(e);
+        }finally{
+            // 4. 데이터베이스 접속 해제
+            if(conn != null){
+                try{
+                    conn.close();
+                    conn = null;
+                } catch (SQLException e) {
+                    // 데이터베이스 접속 해제에서 오류가 발생한 경우
+                    e.printStackTrace();
+                }
+            }
+        }
+```
+
+- 해제처리는 finally 블록에서, Connection 클래스의 close 메서드로 접속을 끊어준다.
+
+```java
+package org.example;
+
+import java.sql.*;
+
+public class SelectSample2 { // try -with-resource 구문으로 변경하기
+    public static void main(String[] args) { // try 블록 직후에 자동으로 폐기하고 싶은 리소스(접속)의 선언문을 기술하기만 하면 된다!
+        // try 블록을 빠져나온 시점에 접속이 자동으로 해제된다.
+        // JDBC 드라이버 로딩
+        try{
+            // postgreSQL의 JDBC 드라이버 로딩
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            // JDBC 드라이버를 찾지 못한 경우
+            e.printStackTrace();
+        }
+
+        // 1. 데이터베이스 접속
+        try (Connection conn = DriverManager.getConnection("jdbc:postgresql:postgres", "postgres", "******");){
+            // 2. SELECT문 발행과 결과 획득
+            // Statement 오브젝트 생성
+            Statement stmt = conn.createStatement();
+
+            // SELECT 문을 발행하고 검색 결과를 저장한다.
+            ResultSet rset = stmt.executeQuery("SELECT * FROM book");
+
+            // 3. 결과 표시
+            while(rset.next()){
+                System.out.println(rset.getString("name"));
+            }
+        } catch (SQLException e) {
+            // 접속, SELECT 문 발행에서 오류가 발생한 경우
+            e.printStackTrace();
+        }
+    }
+}
+
+```
