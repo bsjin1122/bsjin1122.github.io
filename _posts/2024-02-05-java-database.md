@@ -204,7 +204,7 @@ public class SelectPreparedStatement {
 - 데이터를 DTO로 저장하면, 같은 데이터를 이용하는 처리는 데이터베이스에 액세스 하지 않고 DTO에서 가져올 수 있다.
 - 일반적으로 데이터베이스 액세스에는 시간이 걸리므로, DTO를 사용함으로써 처리를 효율화할 수 있다.
 
-![Alt text](image-5.png)
+![](daodto.png)
 
 ### book 테이블을 조작하는 DAO, DTO 만들기
 
