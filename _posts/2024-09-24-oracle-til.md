@@ -1,6 +1,6 @@
 ---
 title: "[Oracle] "
-
+excerpt: "Test"
 categories: [TIL, Oracle]
 tags:
   - [Oracle]
